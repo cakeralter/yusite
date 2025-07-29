@@ -1404,34 +1404,26 @@
                     throw new Error(`不支持的银行类型: ${bank}`);
                 }
 
-                // 尝试使用代理服务或直接请求
-                let response;
+                // 尝试使用代理服务或直接请求，并添加时间戳header
                 try {
-                    response = await fetch(apiUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json',
-                        }
-                    });
-                } catch (corsError) {
-                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-                    response = await fetch(proxyUrl);
+                    // 使用 allorigins.win 的 headers 参数
+                    const headersParam = encodeURIComponent(JSON.stringify({
+                        'nonceStr': Date.now(),
+                        'Accept': 'application/json'
+                    }));
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}&requestHeaders=${headersParam}`;
+                    
+                    let response = await fetch(proxyUrl);
                     
                     if (response.ok) {
                         const proxyData = await response.json();
                         const data = JSON.parse(proxyData.contents);
                         return processBankPriceData(data, bank, isMinsheng);
                     }
-                    throw corsError;
+                } catch (error) {
+                    console.log(`AllOrigins with headers 失败:`, error.message);
                 }
-
-                if (!response.ok) {
-                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                return processBankPriceData(data, bank, isMinsheng);
-
+                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
             } catch (error) {
                 console.error(`获取${bank}价格失败:`, error);
                 return null;
