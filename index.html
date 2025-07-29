@@ -1099,7 +1099,9 @@
                             <th>成本均价</th>
                             <th>当前价格</th>
                             <th>保本均价</th>
-                            <th>当前价值</th>
+                            <th>总价值</th>
+                            <th>手续费</th>
+                            <th>净价值</th>
                             <th>盈亏</th>
                         </tr>
                     </thead>
@@ -1991,7 +1993,9 @@
                     totalCost: 0,
                     avgPrice: 0,
                     breakEvenPrice: 0,
-                    currentValue: 0,
+                    grossValue: 0,      // 总价值
+                    sellFee: 0,         // 手续费
+                    netValue: 0,        // 净价值
                     profitLoss: 0
                 };
             });
@@ -2019,10 +2023,24 @@
                         data.breakEvenPrice = data.avgPrice / (1 - 0.004); // 千分之四手续费
                     }
                     
-                    // 使用对应银行的价格
+                    // 使用对应银行的价格计算总价值
                     const bankPrice = getBankPrice(bank);
-                    data.currentValue = data.weight * bankPrice;
-                    data.profitLoss = data.currentValue - data.totalCost;
+                    data.grossValue = data.weight * bankPrice;
+                    
+                    // 计算该银行的卖出手续费
+                    if (bank === '民生银行') {
+                        data.sellFee = data.weight * 3; // 3元每克
+                    } else if (bank.includes('(JD)')) {
+                        data.sellFee = data.grossValue * 0.004; // 千分之四
+                    } else {
+                        data.sellFee = 0;
+                    }
+                    
+                    // 净价值 = 总价值 - 手续费
+                    data.netValue = data.grossValue - data.sellFee;
+                    
+                    // 盈亏 = 净价值 - 总成本
+                    data.profitLoss = data.netValue - data.totalCost;
                 }
             });
 
@@ -2052,7 +2070,9 @@
                                 ${lastUpdate ? `<br><small style="font-size: 11px; color: #86868b;">${lastUpdate.slice(-8)}</small>` : '<br><small style="font-size: 11px; color: #86868b;">未更新</small>'}
                             </td>
                             <td>${parseFloat(data.breakEvenPrice.toFixed(4))}</td>
-                            <td>${parseFloat(data.currentValue.toFixed(4))}</td>
+                            <td>${parseFloat(data.grossValue.toFixed(4))}</td>
+                            <td style="color: #ff3b30;">${parseFloat(data.sellFee.toFixed(4))}</td>
+                            <td style="font-weight: 600;">${parseFloat(data.netValue.toFixed(4))}</td>
                             <td class="${profitClass}">${parseFloat(data.profitLoss.toFixed(4))}</td>
                         `;
                     }
@@ -2061,7 +2081,7 @@
                 // 显示空状态提示
                 const row = tbody.insertRow();
                 row.innerHTML = `
-                    <td colspan="7" style="text-align: center; color: #86868b; padding: 30px; font-style: italic;">
+                    <td colspan="9" style="text-align: center; color: #86868b; padding: 30px; font-style: italic;">
                         暂无持仓记录，请先添加买入交易
                     </td>
                 `;
