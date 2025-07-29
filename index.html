@@ -123,7 +123,7 @@
         .profit-detail {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 15px 20px;
         }
 
         .detail-item {
@@ -1003,7 +1003,10 @@
     <div class="container">
         <div class="header">
             <h1>积存金交易记录</h1>
-            <button class="btn btn-config" onclick="openConfigModal()">系统配置</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" onclick="openAddRecordModal()">添加记录</button>
+                <button class="btn btn-config" onclick="openConfigModal()">系统配置</button>
+            </div>
         </div>
 
         <!-- 核心盈亏面板 -->
@@ -1023,8 +1026,16 @@
                 </div>
                 <div class="profit-detail">
                     <div class="detail-item">
-                        <span class="label">当前价值</span>
-                        <span class="value" id="currentTotalValue">0元</span>
+                        <span class="label">总价值</span>
+                        <span class="value" id="grossTotalValue">0元</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">净价值</span>
+                        <span class="value" id="netTotalValue">0元</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">卖出手续费</span>
+                        <span class="value" id="sellFeesAmount">0元</span>
                     </div>
                     <div class="detail-item">
                         <span class="label">投入本金</span>
@@ -1098,44 +1109,6 @@
             </div>
         </div>
 
-
-
-        <div class="section">
-            <h2>添加交易记录</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="tradeType">交易类型</label>
-                    <select id="tradeType">
-                        <option value="buy">买入</option>
-                        <option value="sell">卖出</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="bank">银行</label>
-                    <select id="bank">
-                        <option value="民生银行">民生银行</option>
-                        <option value="民生银行(JD)">民生银行(JD)</option>
-                        <option value="浙商银行(JD)">浙商银行(JD)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="weight">克数</label>
-                    <input type="number" id="weight" step="0.01" placeholder="10.00">
-                </div>
-                <div class="form-group">
-                    <label for="price">单价 (元/克)</label>
-                    <input type="number" id="price" step="0.01" placeholder="520.00">
-                </div>
-                <div class="form-group">
-                    <label for="tradeDate">交易日期</label>
-                    <input type="date" id="tradeDate">
-                </div>
-                <div class="form-group">
-                    <button class="btn" onclick="addTransaction()">添加记录</button>
-                </div>
-            </div>
-        </div>
-
         <div class="section">
             <h2>交易记录</h2>
             <div class="table-container">
@@ -1155,6 +1128,60 @@
                     <tbody id="transactionTable">
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加记录弹窗 -->
+    <div id="addRecordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加交易记录</h3>
+                <button class="close-btn" onclick="closeAddRecordModal()">&times;</button>
+            </div>
+            
+            <div class="config-section">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="tradeType">交易类型</label>
+                        <select id="tradeType">
+                            <option value="buy">买入</option>
+                            <option value="sell">卖出</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bank">银行</label>
+                        <select id="bank">
+                            <option value="民生银行">民生银行</option>
+                            <option value="民生银行(JD)">民生银行(JD)</option>
+                            <option value="浙商银行(JD)">浙商银行(JD)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="weight">克数</label>
+                        <input type="number" id="weight" step="0.01" placeholder="10.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="price">单价 (元/克)</label>
+                        <input type="number" id="price" step="0.01" placeholder="520.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="tradeDate">交易日期</label>
+                        <input type="date" id="tradeDate">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn" onclick="addTransaction()">添加记录</button>
+                    </div>
+                </div>
+                
+                <div class="config-info">
+                    <div style="font-weight: 600; margin-bottom: 8px;">添加记录说明：</div>
+                    <div style="font-size: 13px;">
+                        * 选择正确的银行和交易类型<br>
+                        * 系统会自动计算手续费（民生银行：3元/克，JD平台：千分之四）<br>
+                        * 添加后会自动更新所有统计数据
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1662,7 +1689,7 @@
             saveData();
             renderTransactions();
             updateSummary();
-            clearForm();
+            closeAddRecordModal(); // 关闭添加记录弹窗
         }
 
         function calculateFee(type, bank, weight, amount) {
@@ -1720,8 +1747,9 @@
             // 总持仓就是记录的实际持仓重量
             const actualTotalWeight = recordedWeight;
             
-            // 当前价值 = 各银行持仓重量 * 对应银行价格
-            let currentValue = 0;
+            // 重新设计价值计算：总价值、净价值、手续费
+            let grossValue = 0;  // 总价值（不考虑手续费）
+            let totalSellFees = 0;  // 全部卖出需要的手续费
             const bankWeights = {};
             
             // 计算各银行的持仓重量
@@ -1730,13 +1758,25 @@
                 bankWeights[t.bank] += t.weight;
             });
             
-            // 计算总当前价值
+            // 计算总价值和卖出手续费
             Object.keys(bankWeights).forEach(bank => {
                 if (bankWeights[bank] > 0) {
                     const bankPrice = getBankPrice(bank);
-                    currentValue += bankWeights[bank] * bankPrice;
+                    const bankGrossValue = bankWeights[bank] * bankPrice;
+                    grossValue += bankGrossValue;
+                    
+                    // 计算如果现在全部卖出这个银行的黄金需要的手续费
+                    if (bank === '民生银行') {
+                        totalSellFees += bankWeights[bank] * 3; // 3元每克
+                    } else if (bank.includes('(JD)')) {
+                        totalSellFees += bankGrossValue * 0.004; // 千分之四
+                    }
                 }
             });
+            
+            // 净价值 = 总价值 - 卖出手续费
+            const netValue = grossValue - totalSellFees;
+            const currentValue = netValue; // 使用净价值作为当前价值
             
             // 剩余资金 = 总资金 - 已投入资金
             const remainingFunds = actualTotalFunds - totalInvested;
@@ -1787,7 +1827,7 @@
             }
 
             // 更新核心盈亏面板
-            updateProfitOverview(totalProfitLoss, profitRate, totalInvested, currentValue, actualTotalFunds, remainingFunds);
+            updateProfitOverview(totalProfitLoss, profitRate, totalInvested, grossValue, netValue, totalSellFees, actualTotalFunds, remainingFunds);
             
             // 更新详细统计
             document.getElementById('totalPosition').innerHTML = `${parseFloat(actualTotalWeight.toFixed(4))}<span class="unit">克</span>`;
@@ -1837,12 +1877,14 @@
             updateBankSummary();
         }
 
-        function updateProfitOverview(totalProfitLoss, profitRate, invested, currentValue, totalFunds, remainingFunds) {
+        function updateProfitOverview(totalProfitLoss, profitRate, invested, grossValue, netValue, sellFees, totalFunds, remainingFunds) {
             const profitAmount = document.getElementById('totalProfitLoss');
             const profitRateElement = document.getElementById('totalProfitRate');
             const profitBadge = document.getElementById('profitBadge');
             const principalElement = document.getElementById('principalAmount');
-            const currentValueElement = document.getElementById('currentTotalValue');
+            const grossValueElement = document.getElementById('grossTotalValue');
+            const netValueElement = document.getElementById('netTotalValue');
+            const sellFeesElement = document.getElementById('sellFeesAmount');
             
             // 万格式化函数
             function formatToWan(amount) {
@@ -1874,7 +1916,9 @@
             
             // 更新详细信息
             principalElement.textContent = `${formatToWan(invested)}元`;
-            currentValueElement.textContent = `${formatToWan(currentValue)}元`;
+            grossValueElement.textContent = `${formatToWan(grossValue)}元`;
+            netValueElement.textContent = `${formatToWan(netValue)}元`;
+            sellFeesElement.textContent = `${formatToWan(sellFees)}元`;
             
             // 更新资金进度
             updateFundsProgress(invested, totalFunds, remainingFunds);
@@ -2059,11 +2103,28 @@
             document.getElementById('configModal').style.display = 'none';
         }
 
+        function openAddRecordModal() {
+            document.getElementById('tradeType').value = 'buy'; // 默认买入
+            document.getElementById('bank').value = '民生银行'; // 默认民生银行
+            document.getElementById('weight').value = '';
+            document.getElementById('price').value = '';
+            document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('addRecordModal').style.display = 'block';
+        }
+
+        function closeAddRecordModal() {
+            document.getElementById('addRecordModal').style.display = 'none';
+        }
+
         // 点击弹窗外部关闭弹窗
         window.onclick = function(event) {
-            const modal = document.getElementById('configModal');
-            if (event.target === modal) {
+            const configModal = document.getElementById('configModal');
+            const addRecordModal = document.getElementById('addRecordModal');
+            if (event.target === configModal) {
                 closeConfigModal();
+            }
+            if (event.target === addRecordModal) {
+                closeAddRecordModal();
             }
         }
 
