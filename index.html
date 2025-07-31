@@ -1005,6 +1005,9 @@
             <h1>积存金交易记录</h1>
             <div style="display: flex; gap: 10px;">
                 <button class="btn" onclick="openAddRecordModal()">添加记录</button>
+                <button class="btn" onclick="exportData()">导出数据</button>
+                <button class="btn" onclick="document.getElementById('importFileInput').click()">导入数据</button>
+                <input type="file" id="importFileInput" accept="application/json" style="display:none" onchange="importData(event)">
                 <button class="btn btn-config" onclick="openConfigModal()">系统配置</button>
             </div>
         </div>
@@ -1160,12 +1163,23 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label for="inputMode">录入方式</label>
+                        <select id="inputMode" onchange="onInputModeChange()">
+                            <option value="byWeight">按克数</option>
+                            <option value="byAmount">按总价</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="weightGroup">
                         <label for="weight">克数</label>
-                        <input type="number" id="weight" step="0.01" placeholder="10.00">
+                        <input type="number" id="weight" step="0.01" placeholder="10.00" oninput="onWeightOrPriceInput()">
+                    </div>
+                    <div class="form-group" id="amountGroup" style="display:none;">
+                        <label for="amount">总价 (元)</label>
+                        <input type="number" id="amount" step="0.01" placeholder="1000.00" oninput="onAmountOrPriceInput()">
                     </div>
                     <div class="form-group">
                         <label for="price">单价 (元/克)</label>
-                        <input type="number" id="price" step="0.01" placeholder="520.00">
+                        <input type="number" id="price" step="0.01" placeholder="520.00" oninput="onWeightOrPriceInput();onAmountOrPriceInput();">
                     </div>
                     <div class="form-group">
                         <label for="tradeDate">交易日期</label>
@@ -1662,19 +1676,73 @@
             }
         }
 
+        function onInputModeChange() {
+            const mode = document.getElementById('inputMode').value;
+            if (mode === 'byWeight') {
+                document.getElementById('weightGroup').style.display = '';
+                document.getElementById('amountGroup').style.display = 'none';
+                document.getElementById('weight').disabled = false;
+                document.getElementById('amount').disabled = true;
+            } else {
+                document.getElementById('weightGroup').style.display = 'none';
+                document.getElementById('amountGroup').style.display = '';
+                document.getElementById('weight').disabled = true;
+                document.getElementById('amount').disabled = false;
+            }
+        }
+
+        function onWeightOrPriceInput() {
+            const mode = document.getElementById('inputMode').value;
+            if (mode === 'byWeight') {
+                const weight = parseFloat(document.getElementById('weight').value);
+                const price = parseFloat(document.getElementById('price').value);
+                if (!isNaN(weight) && !isNaN(price)) {
+                    document.getElementById('amount').value = (weight * price).toFixed(2);
+                } else {
+                    document.getElementById('amount').value = '';
+                }
+            }
+        }
+
+        function onAmountOrPriceInput() {
+            const mode = document.getElementById('inputMode').value;
+            if (mode === 'byAmount') {
+                const amount = parseFloat(document.getElementById('amount').value);
+                const price = parseFloat(document.getElementById('price').value);
+                if (!isNaN(amount) && !isNaN(price) && price !== 0) {
+                    document.getElementById('weight').value = (amount / price).toFixed(4);
+                } else {
+                    document.getElementById('weight').value = '';
+                }
+            }
+        }
+
+        // 修改addTransaction函数，支持两种买入录入方式
         function addTransaction() {
             const type = document.getElementById('tradeType').value;
             const bank = document.getElementById('bank').value;
-            const weight = parseFloat(document.getElementById('weight').value);
             const price = parseFloat(document.getElementById('price').value);
             const date = document.getElementById('tradeDate').value;
+            let weight, amount;
+            if (type === 'buy') {
+                const mode = document.getElementById('inputMode').value;
+                if (mode === 'byWeight') {
+                    weight = parseFloat(document.getElementById('weight').value);
+                    amount = weight * price;
+                } else {
+                    amount = parseFloat(document.getElementById('amount').value);
+                    weight = amount / price;
+                }
+            } else {
+                weight = parseFloat(document.getElementById('weight').value);
+                amount = weight * price;
+            }
 
-            if (!weight || !price || !date) {
+            if (!weight || !price || !date || (type === 'buy' && !amount)) {
                 alert('请填写完整信息');
                 return;
             }
 
-            const amount = weight * price;
             const fee = calculateFee(type, bank, weight, amount);
 
             transactions.push({
@@ -2126,7 +2194,10 @@
         function openAddRecordModal() {
             document.getElementById('tradeType').value = 'buy'; // 默认买入
             document.getElementById('bank').value = '民生银行'; // 默认民生银行
+            document.getElementById('inputMode').value = 'byWeight';
+            onInputModeChange();
             document.getElementById('weight').value = '';
+            document.getElementById('amount').value = '';
             document.getElementById('price').value = '';
             document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('addRecordModal').style.display = 'block';
@@ -2155,6 +2226,75 @@
 
         function saveData() {
             localStorage.setItem('goldTransactions', JSON.stringify(transactions));
+        }
+
+        // 导出数据为JSON文件
+        function exportData() {
+            const data = {
+                transactions,
+                currentGoldPrice,
+                totalFunds,
+                targetPrice,
+                bankPrices,
+                autoUpdateEnabled,
+                updateInterval
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'gold_data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 导入JSON数据
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.transactions) {
+                        transactions = data.transactions;
+                        localStorage.setItem('goldTransactions', JSON.stringify(transactions));
+                    }
+                    if (data.currentGoldPrice) {
+                        currentGoldPrice = data.currentGoldPrice;
+                        localStorage.setItem('currentGoldPrice', currentGoldPrice);
+                    }
+                    if (data.totalFunds) {
+                        totalFunds = data.totalFunds;
+                        localStorage.setItem('totalFunds', totalFunds);
+                    }
+                    if (data.targetPrice) {
+                        targetPrice = data.targetPrice;
+                        localStorage.setItem('targetPrice', targetPrice);
+                    }
+                    if (data.bankPrices) {
+                        bankPrices = data.bankPrices;
+                        localStorage.setItem('bankPrices', JSON.stringify(bankPrices));
+                    }
+                    if (typeof data.autoUpdateEnabled !== 'undefined') {
+                        autoUpdateEnabled = data.autoUpdateEnabled;
+                        localStorage.setItem('autoUpdateEnabled', autoUpdateEnabled);
+                    }
+                    if (data.updateInterval) {
+                        updateInterval = data.updateInterval;
+                        localStorage.setItem('updateInterval', updateInterval);
+                    }
+                    renderTransactions();
+                    updateSummary();
+                    updateConfigDisplay();
+                    alert('数据导入成功！');
+                } catch (err) {
+                    alert('导入失败，文件格式不正确！');
+                }
+            };
+            reader.readAsText(file);
         }
     </script>
 </body>
