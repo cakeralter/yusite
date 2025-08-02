@@ -1173,16 +1173,16 @@
                         </select>
                     </div>
                     <div class="form-group" id="weightGroup">
-                        <label for="weight">克数</label>
-                        <input type="number" id="weight" step="0.01" placeholder="10.00" oninput="onWeightOrPriceInput();calculateExpectedProfit();">
+                        <label for="weight">克数 (最多4位小数)</label>
+                        <input type="number" id="weight" step="0.0001" placeholder="10.0000" oninput="onWeightOrPriceInput();calculateExpectedProfit();">
                     </div>
                     <div class="form-group" id="amountGroup" style="display:none;">
-                        <label for="amount">总价 (元)</label>
+                        <label for="amount">总价 (元，最多2位小数)</label>
                         <input type="number" id="amount" step="0.01" placeholder="1000.00" oninput="onAmountOrPriceInput()">
                     </div>
                     <div class="form-group">
-                        <label for="price">单价 (元/克)</label>
-                        <input type="number" id="price" step="0.01" placeholder="520.00" oninput="onWeightOrPriceInput();onAmountOrPriceInput();calculateExpectedProfit();">
+                        <label for="price">单价 (元/克，最多4位小数)</label>
+                        <input type="number" id="price" step="0.0001" placeholder="520.0000" oninput="onWeightOrPriceInput();onAmountOrPriceInput();calculateExpectedProfit();">
                     </div>
                     <div class="form-group">
                         <label for="tradeDate">交易日期</label>
@@ -1197,6 +1197,7 @@
                     <div style="font-weight: 600; margin-bottom: 8px;">添加记录说明：</div>
                     <div style="font-size: 13px;">
                         * 选择正确的银行和交易类型<br>
+                        * 重量精度：最多4位小数，金额精度：最多2位小数<br>
                         * 系统会自动计算手续费（民生银行：3元/克，JD平台：千分之四）<br>
                         * 卖出时会根据该银行的买入均价自动计算净盈亏<br>
                         * 总成本 = 买入成本 - 卖出净收入，成本均价 = 总成本 ÷ 持仓克数<br>
@@ -1364,6 +1365,62 @@
             autoUpdateEnabled = true;
         }
 
+        // 兼容旧数据：为没有创建时间戳的交易记录补充，并标准化精度
+        let needSave = false;
+        transactions.forEach((transaction, index) => {
+            if (!transaction.createdAt) {
+                // 使用日期 + 索引作为创建时间戳
+                transaction.createdAt = new Date(transaction.date).getTime() + index;
+                needSave = true;
+            }
+            
+            // 标准化数值精度
+            if (transaction.weight !== undefined) {
+                const newWeight = parseFloat(Math.abs(transaction.weight).toFixed(4));
+                if (Math.abs(transaction.weight) !== newWeight) {
+                    transaction.weight = transaction.weight < 0 ? -newWeight : newWeight;
+                    needSave = true;
+                }
+            }
+            
+            if (transaction.amount !== undefined) {
+                const newAmount = parseFloat(Math.abs(transaction.amount).toFixed(2));
+                if (Math.abs(transaction.amount) !== newAmount) {
+                    transaction.amount = transaction.amount < 0 ? -newAmount : newAmount;
+                    needSave = true;
+                }
+            }
+            
+            if (transaction.price !== undefined) {
+                const newPrice = parseFloat(transaction.price.toFixed(4));
+                if (transaction.price !== newPrice) {
+                    transaction.price = newPrice;
+                    needSave = true;
+                }
+            }
+            
+            if (transaction.fee !== undefined) {
+                const newFee = parseFloat(transaction.fee.toFixed(4));
+                if (transaction.fee !== newFee) {
+                    transaction.fee = newFee;
+                    needSave = true;
+                }
+            }
+            
+            if (transaction.realizedProfitLoss !== undefined) {
+                const newRealizedProfitLoss = parseFloat(transaction.realizedProfitLoss.toFixed(4));
+                if (transaction.realizedProfitLoss !== newRealizedProfitLoss) {
+                    transaction.realizedProfitLoss = newRealizedProfitLoss;
+                    needSave = true;
+                }
+            }
+        });
+        
+        // 如果有任何数据变更，保存一次数据
+        if (needSave) {
+            saveData();
+        }
+        
         // 初始化
         document.getElementById('modalCurrentGoldPrice').value = currentGoldPrice;
         document.getElementById('modalTotalFunds').value = totalFunds;
@@ -1718,9 +1775,11 @@
         function onWeightOrPriceInput() {
             const mode = document.getElementById('inputMode').value;
             if (mode === 'byWeight') {
-                const weight = parseFloat(document.getElementById('weight').value);
+                const weight = parseFloat(parseFloat(document.getElementById('weight').value).toFixed(4));
                 const price = parseFloat(document.getElementById('price').value);
                 if (!isNaN(weight) && !isNaN(price)) {
+                    // 更新输入框为标准化的重量值
+                    document.getElementById('weight').value = weight;
                     document.getElementById('amount').value = (weight * price).toFixed(2);
                 } else {
                     document.getElementById('amount').value = '';
@@ -1731,10 +1790,13 @@
         function onAmountOrPriceInput() {
             const mode = document.getElementById('inputMode').value;
             if (mode === 'byAmount') {
-                const amount = parseFloat(document.getElementById('amount').value);
+                const amount = parseFloat(parseFloat(document.getElementById('amount').value).toFixed(2));
                 const price = parseFloat(document.getElementById('price').value);
                 if (!isNaN(amount) && !isNaN(price) && price !== 0) {
-                    document.getElementById('weight').value = (amount / price).toFixed(4);
+                    // 更新输入框为标准化的金额值
+                    document.getElementById('amount').value = amount;
+                    const weight = parseFloat((amount / price).toFixed(4));
+                    document.getElementById('weight').value = weight;
                 } else {
                     document.getElementById('weight').value = '';
                 }
@@ -1751,15 +1813,15 @@
             if (type === 'buy') {
                 const mode = document.getElementById('inputMode').value;
                 if (mode === 'byWeight') {
-                    weight = parseFloat(document.getElementById('weight').value);
-                    amount = weight * price;
+                    weight = parseFloat(parseFloat(document.getElementById('weight').value).toFixed(4));
+                    amount = parseFloat((weight * price).toFixed(2));
                 } else {
-                    amount = parseFloat(document.getElementById('amount').value);
-                    weight = amount / price;
+                    amount = parseFloat(parseFloat(document.getElementById('amount').value).toFixed(2));
+                    weight = parseFloat((amount / price).toFixed(4));
                 }
             } else {
-                weight = parseFloat(document.getElementById('weight').value);
-                amount = weight * price;
+                weight = parseFloat(parseFloat(document.getElementById('weight').value).toFixed(4));
+                amount = parseFloat((weight * price).toFixed(2));
             }
 
             if (!weight || !price || !date || (type === 'buy' && !amount)) {
@@ -1767,14 +1829,14 @@
                 return;
             }
 
-            const fee = calculateFee(type, bank, weight, amount);
+            const fee = parseFloat(calculateFee(type, bank, weight, amount).toFixed(4));
             let realizedProfitLoss = 0;
 
             // 如果是卖出，计算净盈亏
             if (type === 'sell') {
                 const avgPrice = calculateBankAvgPrice(bank);
                 // 净盈亏 = (卖出价格 - 均价) * 重量 - 手续费
-                realizedProfitLoss = (price - avgPrice) * weight - fee;
+                realizedProfitLoss = parseFloat(((price - avgPrice) * weight - fee).toFixed(4));
             }
 
             transactions.push({
@@ -1782,11 +1844,12 @@
                 type,
                 bank,
                 weight: type === 'sell' ? -weight : weight,
-                price,
+                price: parseFloat(price.toFixed(4)),
                 amount: type === 'sell' ? -amount : amount,
                 fee,
                 date,
-                realizedProfitLoss: realizedProfitLoss // 新增字段存储净盈亏
+                realizedProfitLoss: realizedProfitLoss, // 新增字段存储净盈亏
+                createdAt: Date.now() // 添加创建时间戳
             });
 
             saveData();
@@ -1848,7 +1911,12 @@
             const tbody = document.getElementById('transactionTable');
             tbody.innerHTML = '';
 
-            transactions.slice().reverse().forEach(transaction => {
+            transactions.slice().sort((a, b) => {
+                // 优先使用创建时间戳，如果没有则使用日期
+                const timeA = a.createdAt || new Date(a.date).getTime();
+                const timeB = b.createdAt || new Date(b.date).getTime();
+                return timeB - timeA; // 倒序排列（最新的在前）
+            }).forEach(transaction => {
                 const row = tbody.insertRow();
                 
                 // 计算净盈亏显示
@@ -2233,37 +2301,58 @@
             const tbody = document.getElementById('bankSummaryTable');
             tbody.innerHTML = '';
 
-            // 检查是否有持仓数据
-            const hasPositions = Object.values(bankData).some(data => data.weight > 0);
+            // 检查是否有任何交易数据（包括历史）
+            const hasAnyData = Object.values(bankData).some(data => data.weight !== 0 || data.historicalProfitLoss !== 0);
             
-            if (hasPositions) {
+            if (hasAnyData) {
                 Object.keys(bankData).forEach(bank => {
                     const data = bankData[bank];
-                    if (data.weight > 0) {
+                    // 只显示有持仓或有历史盈亏的银行
+                    if (data.weight !== 0 || data.historicalProfitLoss !== 0) {
                         const row = tbody.insertRow();
-                        const profitClass = data.profitLoss >= 0 ? 'profit-positive' : 'profit-negative';
-                        const bankPrice = getBankPrice(bank);
-                        const lastUpdate = bankPrices[bank]?.lastUpdate || '';
-                        const priceStyle = lastUpdate ? 'color: #34c759; font-weight: 600;' : 'color: #86868b;';
                         
-                        const historicalProfitClass = data.historicalProfitLoss >= 0 ? 'profit-positive' : 'profit-negative';
-                        
-                        row.innerHTML = `
-                            <td>${bank}</td>
-                            <td>${parseFloat(data.weight.toFixed(4))}</td>
-                            <td style="font-weight: 600; color: #007aff;">${parseFloat(data.totalCost.toFixed(4))}</td>
-                            <td>${parseFloat(data.avgPrice.toFixed(4))}</td>
-                            <td style="${priceStyle}">
-                                ${parseFloat(bankPrice.toFixed(4))}
-                                ${lastUpdate ? `<br><small style="font-size: 11px; color: #86868b;">${lastUpdate.slice(-8)}</small>` : '<br><small style="font-size: 11px; color: #86868b;">未更新</small>'}
-                            </td>
-                            <td>${parseFloat(data.breakEvenPrice.toFixed(4))}</td>
-                            <td>${parseFloat(data.grossValue.toFixed(4))}</td>
-                            <td style="color: #ff3b30;">${parseFloat(data.sellFee.toFixed(4))}</td>
-                            <td style="font-weight: 600;">${parseFloat(data.netValue.toFixed(4))}</td>
-                            <td class="${profitClass}">${parseFloat(data.profitLoss.toFixed(4))}</td>
-                            <td class="${historicalProfitClass}" style="font-weight: 600;">${parseFloat(data.historicalProfitLoss.toFixed(4))}</td>
-                        `;
+                        if (data.weight > 0) {
+                            // 有持仓的银行：显示完整信息
+                            const profitClass = data.profitLoss >= 0 ? 'profit-positive' : 'profit-negative';
+                            const bankPrice = getBankPrice(bank);
+                            const lastUpdate = bankPrices[bank]?.lastUpdate || '';
+                            const priceStyle = lastUpdate ? 'color: #34c759; font-weight: 600;' : 'color: #86868b;';
+                            const historicalProfitClass = data.historicalProfitLoss >= 0 ? 'profit-positive' : 'profit-negative';
+                            
+                            row.innerHTML = `
+                                <td>${bank}</td>
+                                <td>${parseFloat(data.weight.toFixed(4))}</td>
+                                <td style="font-weight: 600; color: #007aff;">${parseFloat(data.totalCost.toFixed(4))}</td>
+                                <td>${parseFloat(data.avgPrice.toFixed(4))}</td>
+                                <td style="${priceStyle}">
+                                    ${parseFloat(bankPrice.toFixed(4))}
+                                    ${lastUpdate ? `<br><small style="font-size: 11px; color: #86868b;">${lastUpdate.slice(-8)}</small>` : '<br><small style="font-size: 11px; color: #86868b;">未更新</small>'}
+                                </td>
+                                <td>${parseFloat(data.breakEvenPrice.toFixed(4))}</td>
+                                <td>${parseFloat(data.grossValue.toFixed(4))}</td>
+                                <td style="color: #ff3b30;">${parseFloat(data.sellFee.toFixed(4))}</td>
+                                <td style="font-weight: 600;">${parseFloat(data.netValue.toFixed(4))}</td>
+                                <td class="${profitClass}">${parseFloat(data.profitLoss.toFixed(4))}</td>
+                                <td class="${historicalProfitClass}" style="font-weight: 600;">${parseFloat(data.historicalProfitLoss.toFixed(4))}</td>
+                            `;
+                        } else {
+                            // 无持仓但有历史盈亏的银行：只显示历史盈亏，其他全部为0
+                            const historicalProfitClass = data.historicalProfitLoss >= 0 ? 'profit-positive' : 'profit-negative';
+                            
+                            row.innerHTML = `
+                                <td>${bank}</td>
+                                <td style="color: #86868b;">0</td>
+                                <td style="color: #86868b;">0</td>
+                                <td style="color: #86868b;">-</td>
+                                <td style="color: #86868b;">-</td>
+                                <td style="color: #86868b;">-</td>
+                                <td style="color: #86868b;">0</td>
+                                <td style="color: #86868b;">0</td>
+                                <td style="color: #86868b;">0</td>
+                                <td style="color: #86868b;">0</td>
+                                <td class="${historicalProfitClass}" style="font-weight: 600;">${parseFloat(data.historicalProfitLoss.toFixed(4))}</td>
+                            `;
+                        }
                     }
                 });
             } else {
@@ -2271,7 +2360,7 @@
                 const row = tbody.insertRow();
                 row.innerHTML = `
                     <td colspan="11" style="text-align: center; color: #86868b; padding: 30px; font-style: italic;">
-                        暂无持仓记录，请先添加买入交易
+                        暂无交易记录，请先添加交易
                     </td>
                 `;
             }
@@ -2368,19 +2457,23 @@
         function calculateExpectedProfit() {
             const tradeType = document.getElementById('tradeType').value;
             const bank = document.getElementById('bank').value;
-            const weight = parseFloat(document.getElementById('weight').value);
-            const price = parseFloat(document.getElementById('price').value);
+            const inputWeight = parseFloat(document.getElementById('weight').value);
+            const inputPrice = parseFloat(document.getElementById('price').value);
             const expectedProfitDiv = document.getElementById('expectedProfitInfo');
             
-            if (tradeType === 'sell' && weight > 0 && price > 0) {
+            if (tradeType === 'sell' && inputWeight > 0 && inputPrice > 0) {
+                // 使用标准化精度
+                const weight = parseFloat(inputWeight.toFixed(4));
+                const price = parseFloat(inputPrice.toFixed(4));
+                
                 const avgPrice = calculateBankAvgPrice(bank);
-                const currentWeight = transactions.filter(t => t.bank === bank).reduce((sum, t) => sum + t.weight, 0);
+                const currentWeight = parseFloat(transactions.filter(t => t.bank === bank).reduce((sum, t) => sum + t.weight, 0).toFixed(4));
                 
                 if (avgPrice > 0 && currentWeight >= weight) {
-                    const amount = weight * price;
-                    const fee = calculateFee('sell', bank, weight, amount);
-                    const expectedProfit = (price - avgPrice) * weight - fee;
-                    const profitRate = ((price - avgPrice) / avgPrice * 100);
+                    const amount = parseFloat((weight * price).toFixed(2));
+                    const fee = parseFloat(calculateFee('sell', bank, weight, amount).toFixed(4));
+                    const expectedProfit = parseFloat(((price - avgPrice) * weight - fee).toFixed(4));
+                    const profitRate = parseFloat(((price - avgPrice) / avgPrice * 100).toFixed(2));
                     
                     const profitClass = expectedProfit >= 0 ? '#34c759' : '#ff3b30';
                     const profitText = expectedProfit >= 0 ? '预期盈利' : '预期亏损';
@@ -2404,7 +2497,7 @@
                     expectedProfitDiv.style.display = 'block';
                     expectedProfitDiv.style.borderLeftColor = '#ff3b30';
                     expectedProfitDiv.innerHTML = `
-                        <span style="color: #ff3b30;">⚠️ 卖出数量超过持仓 (当前持仓: ${parseFloat(currentWeight.toFixed(4))}克)</span>
+                        <span style="color: #ff3b30;">⚠️ 卖出数量超过持仓 (当前持仓: ${currentWeight}克)</span>
                     `;
                 } else {
                     expectedProfitDiv.style.display = 'block';
