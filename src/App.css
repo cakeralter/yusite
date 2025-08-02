@@ -1,0 +1,138 @@
+/* 额外的样式补充 */
+.container {
+  max-width: 1200px;
+}
+
+/* 动画效果 */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-slide-in {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* 渐变背景 */
+.profit-card-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.profit-card-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* 进度条样式 */
+.progress-bar {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #34c759, #30d158);
+}
+
+.progress-fill.warning {
+  background: linear-gradient(90deg, #ffcc02, #ff9500);
+}
+
+.progress-fill.danger {
+  background: linear-gradient(90deg, #ff9500, #ff6347);
+}
+
+/* 开关样式 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #d2d2d7;
+  transition: .3s;
+  border-radius: 14px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked + .slider {
+  background-color: #34c759;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #34c759;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .switch {
+    width: 45px;
+    height: 25px;
+  }
+  
+  .slider:before {
+    height: 19px;
+    width: 19px;
+    left: 3px;
+    bottom: 3px;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(20px);
+  }
+}
