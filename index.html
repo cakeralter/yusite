@@ -1963,8 +1963,11 @@
         function updateSummary() {
             // 基础数据计算
             const recordedWeight = transactions.reduce((sum, t) => sum + t.weight, 0);
-            const totalInvested = transactions.filter(t => t.type === 'buy').reduce((sum, t) => sum + t.amount, 0);
-            const totalSold = Math.abs(transactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0));
+            const totalBuyAmount = transactions.filter(t => t.type === 'buy').reduce((sum, t) => sum + t.amount, 0);
+            const totalSellAmount = Math.abs(transactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0));
+            const historicalSellFees = transactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.fee, 0);
+            const totalSellNetIncome = totalSellAmount - historicalSellFees; // 卖出净收入
+            const totalInvested = totalBuyAmount - totalSellNetIncome; // 净投入资金 = 买入金额 - 卖出净收入
             const totalFeesAmount = transactions.reduce((sum, t) => sum + t.fee, 0);
             const buyTransactions = transactions.filter(t => t.type === 'buy').length;
             const sellTransactions = transactions.filter(t => t.type === 'sell').length;
@@ -2019,12 +2022,11 @@
             const netValue = grossValue - totalSellFees;
             const currentValue = netValue; // 使用净价值作为当前价值
             
-            // 剩余资金 = 总资金 - 已投入资金 + 卖出收入 - 卖出手续费
-            const totalSellIncome = Math.abs(transactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0));
-            const remainingFunds = actualTotalFunds - totalInvested + totalSellIncome - totalFeesAmount;
+            // 剩余资金 = 总资金 - 净投入资金
+            const remainingFunds = actualTotalFunds - totalInvested;
             
-            // 总盈亏 = 当前价值 - 已投入资金 + 卖出收入 - 手续费
-            const totalProfitLoss = currentValue - totalInvested + totalSold - totalFeesAmount;
+            // 总盈亏 = 当前价值 - 净投入资金
+            const totalProfitLoss = currentValue - totalInvested;
             const profitRate = totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
             
             // 计算加权平均保本均价（使用总成本法）
