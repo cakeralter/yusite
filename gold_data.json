@@ -1,0 +1,127 @@
+{
+  "transactions": [
+    {
+      "id": 1753751956422,
+      "type": "buy",
+      "bank": "浙商银行(JD)",
+      "weight": 102.358,
+      "price": 781.66,
+      "amount": 80009.15,
+      "fee": 0,
+      "date": "2025-07-25",
+      "createdAt": 1753401600000
+    },
+    {
+      "id": 1753751971791,
+      "type": "buy",
+      "bank": "民生银行",
+      "weight": 65,
+      "price": 772.7,
+      "amount": 50225.5,
+      "fee": 0,
+      "date": "2025-07-25",
+      "createdAt": 1753401600001
+    },
+    {
+      "id": 1753915742884,
+      "type": "buy",
+      "bank": "民生银行",
+      "weight": 15,
+      "price": 763.9,
+      "amount": 11458.5,
+      "fee": 0,
+      "date": "2025-07-30",
+      "createdAt": 1753833600002
+    },
+    {
+      "id": 1753915769612,
+      "type": "buy",
+      "bank": "民生银行",
+      "weight": 20,
+      "price": 759.88,
+      "amount": 15197.6,
+      "fee": 0,
+      "date": "2025-07-30",
+      "createdAt": 1753833600003
+    },
+    {
+      "id": 1754062419739,
+      "type": "sell",
+      "bank": "浙商银行(JD)",
+      "weight": -27.3576,
+      "price": 776.36,
+      "amount": -21239.35,
+      "fee": 84.9574,
+      "date": "2025-08-01",
+      "realizedProfitLoss": -229.9527,
+      "createdAt": 1754006400004
+    },
+    {
+      "id": 1754062536847,
+      "type": "buy",
+      "bank": "民生银行(JD)",
+      "weight": 26.331,
+      "price": 759.56,
+      "amount": 20000,
+      "fee": 0,
+      "date": "2025-07-31",
+      "realizedProfitLoss": 0,
+      "createdAt": 1753920000005
+    },
+    {
+      "id": 1754062572874,
+      "type": "sell",
+      "bank": "民生银行(JD)",
+      "weight": -26.331,
+      "price": 766.15,
+      "amount": -20173.5,
+      "fee": 80.694,
+      "date": "2025-07-31",
+      "realizedProfitLoss": 92.8273,
+      "createdAt": 1753920000006
+    },
+    {
+      "id": 1754395390456,
+      "type": "buy",
+      "bank": "浙商银行(JD)",
+      "weight": 27.256,
+      "price": 776.16,
+      "amount": 21155,
+      "fee": 0,
+      "date": "2025-08-05",
+      "realizedProfitLoss": 0,
+      "createdAt": 1754395390456
+    },
+    {
+      "id": 1754395445814,
+      "type": "buy",
+      "bank": "民生银行(JD)",
+      "weight": 10.0004,
+      "price": 774.87,
+      "amount": 7749,
+      "fee": 0,
+      "date": "2025-08-05",
+      "realizedProfitLoss": 0,
+      "createdAt": 1754395445814
+    }
+  ],
+  "currentGoldPrice": 776.07,
+  "totalFunds": 220000,
+  "targetPrice": 789,
+  "bankPrices": {
+    "民生银行": {
+      "price": 775.81,
+      "lastUpdate": "2025/8/5 20:04:22"
+    },
+    "民生银行(JD)": {
+      "price": 775.81,
+      "lastUpdate": "2025/8/5 20:04:19"
+    },
+    "浙商银行(JD)": {
+      "price": 776.07,
+      "lastUpdate": "2025/8/5 20:04:20"
+    }
+  },
+  "autoUpdateEnabled": true,
+  "updateInterval": 5
+}

@@ -1880,24 +1880,38 @@
             return totalWeight > 0 ? totalCost / totalWeight : 0;
         }
 
-        // 计算指定银行的当前成本均价（总成本/总重量）
+        // 计算指定银行的当前成本均价（仅计算当前持仓的成本，不受历史盈亏影响）
         function calculateCurrentBankAvgPrice(bank) {
             const bankTransactions = transactions.filter(t => t.bank === bank);
+            
+            // 先计算当前总持仓
+            const currentTotalWeight = bankTransactions.reduce((sum, t) => sum + t.weight, 0);
+            
+            // 如果没有持仓，返回0
+            if (currentTotalWeight <= 0) {
+                return 0;
+            }
+            
+            // 按时间顺序排序交易
+            bankTransactions.sort((a, b) => (a.createdAt || new Date(a.date).getTime()) - (b.createdAt || new Date(b.date).getTime()));
+            
+            // 使用加权平均成本法计算当前持仓的成本
+            let remainingWeight = currentTotalWeight;
             let totalCost = 0;
-            let totalWeight = 0;
             
-            bankTransactions.forEach(t => {
-                totalWeight += t.weight;
+            // 从最新的交易开始往回算，直到累计重量等于当前持仓
+            for (let i = bankTransactions.length - 1; i >= 0 && remainingWeight > 0; i--) {
+                const t = bankTransactions[i];
+                
                 if (t.type === 'buy') {
-                    totalCost += t.amount;
-                } else if (t.type === 'sell') {
-                    // 卖出减少总成本（减去净收入）
-                    const sellNetIncome = Math.abs(t.amount) - t.fee;
-                    totalCost -= sellNetIncome;
+                    const takeWeight = Math.min(t.weight, remainingWeight);
+                    const proportionalCost = (takeWeight / t.weight) * t.amount;
+                    totalCost += proportionalCost;
+                    remainingWeight -= takeWeight;
                 }
-            });
+            }
             
-            return totalWeight > 0 ? totalCost / totalWeight : 0;
+            return currentTotalWeight > 0 ? totalCost / currentTotalWeight : 0;
         }
 
         function deleteTransaction(id) {
@@ -1959,15 +1973,19 @@
             let totalRemainingCost = 0;
             let totalRemainingWeight = 0;
             
-            // 计算所有银行的总成本和总重量
+            // 计算所有银行的总成本和总重量（使用修正后的方法）
+            const bankWeights = {};
             transactions.forEach(t => {
                 totalRemainingWeight += t.weight;
-                if (t.type === 'buy') {
-                    totalRemainingCost += t.amount;
-                } else if (t.type === 'sell') {
-                    // 卖出减少总成本（减去净收入）
-                    const sellNetIncome = Math.abs(t.amount) - t.fee;
-                    totalRemainingCost -= sellNetIncome;
+                if (!bankWeights[t.bank]) bankWeights[t.bank] = 0;
+                bankWeights[t.bank] += t.weight;
+            });
+            
+            // 使用新的成本计算方法汇总总成本
+            Object.keys(bankWeights).forEach(bank => {
+                if (bankWeights[bank] > 0) {
+                    const bankAvgPrice = calculateCurrentBankAvgPrice(bank);
+                    totalRemainingCost += bankAvgPrice * bankWeights[bank];
                 }
             });
             
@@ -1980,13 +1998,6 @@
             // 重新设计价值计算：总价值、净价值、手续费
             let grossValue = 0;  // 总价值（不考虑手续费）
             let totalSellFees = 0;  // 全部卖出需要的手续费
-            const bankWeights = {};
-            
-            // 计算各银行的持仓重量
-            transactions.forEach(t => {
-                if (!bankWeights[t.bank]) bankWeights[t.bank] = 0;
-                bankWeights[t.bank] += t.weight;
-            });
             
             // 计算总价值和卖出手续费
             Object.keys(bankWeights).forEach(bank => {
@@ -2243,31 +2254,35 @@
             transactions.forEach(t => {
                 if (bankData[t.bank]) {
                     bankData[t.bank].weight += t.weight;
-                    if (t.type === 'buy') {
-                        // 买入增加总成本
-                        bankData[t.bank].totalCost += t.amount;
-                    } else if (t.type === 'sell') {
-                        // 卖出减少总成本（减去净收入：卖出金额-手续费）
-                        const sellNetIncome = Math.abs(t.amount) - t.fee;
-                        bankData[t.bank].totalCost -= sellNetIncome;
-                        
-                        // 累计历史盈亏
+                    
+                    // 累计历史盈亏（卖出时）
+                    if (t.type === 'sell') {
                         if (t.realizedProfitLoss !== undefined) {
                             bankData[t.bank].historicalProfitLoss += t.realizedProfitLoss;
                         } else {
                             // 兼容旧数据：简单计算
+                            const sellNetIncome = Math.abs(t.amount) - t.fee;
                             bankData[t.bank].historicalProfitLoss += sellNetIncome;
                         }
                     }
                 }
             });
-
-            // 计算均价和保本均价
+            
+            // 计算当前持仓的总成本（使用新的均价计算方法）
             Object.keys(bankData).forEach(bank => {
                 const data = bankData[bank];
                 if (data.weight > 0) {
-                    // 均价 = 总成本 / 当前持仓克数
-                    data.avgPrice = data.totalCost / data.weight;
+                    // 使用修正后的成本均价计算方法
+                    data.avgPrice = calculateCurrentBankAvgPrice(bank);
+                    data.totalCost = data.avgPrice * data.weight;
+                }
+            });
+
+            // 计算保本均价和其他数据
+            Object.keys(bankData).forEach(bank => {
+                const data = bankData[bank];
+                if (data.weight > 0) {
+                    // 均价已在前面计算，这里计算保本均价
                     
                     // 不同银行的保本均价
                     if (bank === '民生银行') {
