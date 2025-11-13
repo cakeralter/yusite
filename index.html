@@ -1,703 +1,651 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>积存金交易记录</title>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        padding: 20px;
-      }
-
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-
-      h1 {
-        color: white;
-        text-align: center;
-        margin-bottom: 30px;
-        font-size: 32px;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-      }
-
-      .summary {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      }
-
-      .summary h2 {
-        color: #667eea;
-        margin-bottom: 20px;
-        font-size: 20px;
-      }
-
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-      }
-
-      .stat-item {
-        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 4px solid #667eea;
-      }
-
-      .stat-label {
-        color: #666;
-        font-size: 13px;
-        margin-bottom: 5px;
-      }
-
-      .stat-value {
-        color: #333;
-        font-size: 24px;
-        font-weight: bold;
-      }
-
-      .stat-value.positive {
-        color: #10b981;
-      }
-
-      .stat-value.negative {
-        color: #ef4444;
-      }
-
-      .input-section {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      }
-
-      .input-form {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-        align-items: flex-end;
-      }
-
-      .form-group {
-        flex: 1;
-        min-width: 120px;
-      }
-
-      label {
-        display: block;
-        color: #666;
-        margin-bottom: 5px;
-        font-size: 14px;
-      }
-
-      input,
-      select {
-        width: 100%;
-        padding: 10px;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        font-size: 14px;
-        transition: border-color 0.3s;
-      }
-
-      input:focus,
-      select:focus {
-        outline: none;
-        border-color: #667eea;
-      }
-
-      input[type="file"] {
-        display: none;
-      }
-
-      button {
-        padding: 10px 25px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-
-      button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-      }
-
-      button:active {
-        transform: translateY(0);
-      }
-
-      .secondary-btn {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      }
-
-      .secondary-btn:hover {
-        box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
-      }
-
-      .records-section {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      }
-
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-
-      .section-header h2 {
-        color: #667eea;
-        font-size: 20px;
-      }
-
-      .action-buttons {
-        display: flex;
-        gap: 10px;
-      }
-
-      .profits-section {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      }
-
-      .profits-section h2 {
-        color: #667eea;
-        margin-bottom: 20px;
-        font-size: 20px;
-      }
-
-      .profit-summary {
-        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-left: 4px solid #667eea;
-      }
-
-      .profit-summary .label {
-        color: #666;
-        font-size: 14px;
-      }
-
-      .profit-summary .value {
-        font-size: 24px;
-        font-weight: bold;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-
-      th,
-      td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid #e5e7eb;
-      }
-
-      th {
-        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-        color: #667eea;
-        font-weight: 600;
-        font-size: 14px;
-      }
-
-      td {
-        color: #333;
-        font-size: 14px;
-      }
-
-      .buy {
-        color: #ef4444;
-      }
-
-      .sell {
-        color: #10b981;
-      }
-
-      .delete-btn {
-        background: #ef4444;
-        padding: 5px 12px;
-        font-size: 12px;
-      }
-
-      .delete-btn:hover {
-        box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
-      }
-
-      .empty-state {
-        text-align: center;
-        padding: 40px;
-        color: #999;
-      }
-
-      @media (max-width: 768px) {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .summary {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .summary h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .stat-value.positive {
+            color: #10b981;
+        }
+        
+        .stat-value.negative {
+            color: #ef4444;
+        }
+        
+        .input-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
         .input-form {
-          flex-direction: column;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
         }
-
+        
         .form-group {
-          width: 100%;
+            flex: 1;
+            min-width: 120px;
         }
-
+        
+        label {
+            display: block;
+            color: #666;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        button {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .secondary-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .secondary-btn:hover {
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+        
+        .records-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
         .section-header {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
-
+        
+        .section-header h2 {
+            color: #667eea;
+            font-size: 20px;
+        }
+        
         .action-buttons {
-          width: 100%;
-          flex-direction: column;
+            display: flex;
+            gap: 10px;
         }
-
-        .action-buttons button {
-          width: 100%;
+        
+        .profits-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-
+        
+        .profits-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .profit-summary {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .profit-summary .label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .profit-summary .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
         table {
-          font-size: 12px;
+            width: 100%;
+            border-collapse: collapse;
         }
-
-        th,
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
         td {
-          padding: 8px;
+            color: #333;
+            font-size: 14px;
         }
-      }
+        
+        .buy {
+            color: #ef4444;
+        }
+        
+        .sell {
+            color: #10b981;
+        }
+        
+        .delete-btn {
+            background: #ef4444;
+            padding: 5px 12px;
+            font-size: 12px;
+        }
+        
+        .delete-btn:hover {
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        @media (max-width: 768px) {
+            .input-form {
+                flex-direction: column;
+            }
+            
+            .form-group {
+                width: 100%;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .action-buttons {
+                width: 100%;
+                flex-direction: column;
+            }
+            
+            .action-buttons button {
+                width: 100%;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px;
+            }
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <div class="container">
-      <h1>💰 积存金交易记录</h1>
-
-      <div class="summary">
-        <h2>持仓汇总</h2>
-        <div class="stats">
-          <div class="stat-item">
-            <div class="stat-label">当前持仓</div>
-            <div class="stat-value" id="currentHolding">0 g</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">持仓成本</div>
-            <div class="stat-value" id="totalCost">¥0</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">成本均价</div>
-            <div class="stat-value" id="avgPrice">¥0/g</div>
-          </div>
+        <h1>💰 积存金交易记录</h1>
+        
+        <div class="summary">
+            <h2>持仓汇总</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">当前持仓</div>
+                    <div class="stat-value" id="currentHolding">0 g</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">持仓成本</div>
+                    <div class="stat-value" id="totalCost">¥0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">成本均价</div>
+                    <div class="stat-value" id="avgPrice">¥0/g</div>
+                </div>
+            </div>
         </div>
-      </div>
-
-      <div class="input-section">
-        <div class="input-form">
-          <div class="form-group">
-            <label>交易类型</label>
-            <select id="tradeType">
-              <option value="buy">买入</option>
-              <option value="sell">卖出</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>均价 (元/g)</label>
-            <input type="number" id="price" step="0.01" placeholder="0.00" />
-          </div>
-          <div class="form-group">
-            <label>数量 (g)</label>
-            <input type="number" id="amount" step="0.01" placeholder="0.00" />
-          </div>
-          <div class="form-group">
-            <label>日期</label>
-            <input type="date" id="date" />
-          </div>
-          <button onclick="addRecord()">添加记录</button>
+        
+        <div class="input-section">
+            <div class="input-form">
+                <div class="form-group">
+                    <label>交易类型</label>
+                    <select id="tradeType">
+                        <option value="buy">买入</option>
+                        <option value="sell">卖出</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>均价 (元/g)</label>
+                    <input type="number" id="price" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>数量 (g)</label>
+                    <input type="number" id="amount" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="date">
+                </div>
+                <button onclick="addRecord()">添加记录</button>
+            </div>
         </div>
-      </div>
-
-      <div class="records-section">
-        <div class="section-header">
-          <h2>交易记录</h2>
-          <div class="action-buttons">
-            <button class="secondary-btn" onclick="exportData()">
-              导出数据
-            </button>
-            <button
-              class="secondary-btn"
-              onclick="document.getElementById('importFile').click()"
-            >
-              导入数据
-            </button>
-            <input
-              type="file"
-              id="importFile"
-              accept=".json"
-              onchange="importData(event)"
-            />
-          </div>
+        
+        <div class="records-section">
+            <div class="section-header">
+                <h2>交易记录</h2>
+                <div class="action-buttons">
+                    <button class="secondary-btn" onclick="exportData()">导出数据</button>
+                    <button class="secondary-btn" onclick="document.getElementById('importFile').click()">导入数据</button>
+                    <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+                </div>
+            </div>
+            <table id="recordsTable">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>类型</th>
+                        <th>均价</th>
+                        <th>数量</th>
+                        <th>金额</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="recordsBody">
+                    <tr>
+                        <td colspan="6" class="empty-state">暂无交易记录</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-        <table id="recordsTable">
-          <thead>
-            <tr>
-              <th>日期</th>
-              <th>类型</th>
-              <th>均价</th>
-              <th>数量</th>
-              <th>金额</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="recordsBody">
-            <tr>
-              <td colspan="6" class="empty-state">暂无交易记录</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
 
-      <div class="profits-section">
-        <h2>清仓收益记录</h2>
-        <div class="profit-summary">
-          <span class="label">累计清仓收益总计</span>
-          <span class="value" id="totalProfitSum">¥0.00</span>
+        <div class="profits-section">
+            <h2>清仓收益记录</h2>
+            <div class="profit-summary">
+                <span class="label">累计清仓收益总计</span>
+                <span class="value" id="totalProfitSum">¥0.00</span>
+            </div>
+            <table id="profitsTable">
+                <thead>
+                    <tr>
+                        <th>清仓日期</th>
+                        <th>收益金额</th>
+                    </tr>
+                </thead>
+                <tbody id="profitsBody">
+                    <tr>
+                        <td colspan="2" class="empty-state">暂无清仓记录</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-        <table id="profitsTable">
-          <thead>
-            <tr>
-              <th>清仓日期</th>
-              <th>收益金额</th>
-            </tr>
-          </thead>
-          <tbody id="profitsBody">
-            <tr>
-              <td colspan="2" class="empty-state">暂无清仓记录</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
 
     <script>
-      const STORAGE_KEY = "goldRecords";
-
-      let records = [];
-      let profits = [];
-
-      function init() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const data = JSON.parse(saved);
-          records = data.records || [];
-          profits = data.profits || [];
-        }
-
-        document.getElementById("date").valueAsDate = new Date();
-        renderRecords();
-        renderProfits();
-        updateSummary();
-      }
-
-      function saveData() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ records, profits }));
-      }
-
-      function calculateStats() {
-        let totalBuyAmount = 0;
-        let totalSellAmount = 0;
-        let totalBuyCost = 0;
-        let totalSellCost = 0;
-
-        records.forEach((r) => {
-          if (r.type === "buy") {
-            totalBuyAmount += r.amount;
-            totalBuyCost += r.total;
-          } else {
-            totalSellAmount += r.amount;
-            totalSellCost += r.total;
-          }
-        });
-
-        const currentHolding = totalBuyAmount - totalSellAmount;
-        const holdingCost = totalBuyCost - totalSellCost;
-        const avgPrice =
-          currentHolding > 0.01 ? holdingCost / currentHolding : 0;
-
-        return {
-          currentHolding,
-          holdingCost,
-          avgPrice,
-          totalBuyAmount,
-          totalSellAmount,
-        };
-      }
-
-      function addRecord() {
-        const type = document.getElementById("tradeType").value;
-        const price = parseFloat(document.getElementById("price").value);
-        const amount = parseFloat(document.getElementById("amount").value);
-        const date = document.getElementById("date").value;
-
-        if (!price || !amount || !date) {
-          alert("请填写完整信息");
-          return;
-        }
-
-        const total = price * amount;
-
-        if (type === "sell") {
-          const stats = calculateStats();
-          if (amount > stats.currentHolding + 0.01) {
-            alert("卖出数量不能超过当前持仓");
-            return;
-          }
-        }
-
-        records.unshift({
-          id: Date.now(),
-          date,
-          type,
-          price,
-          amount,
-          total,
-        });
-
-        const stats = calculateStats();
-        if (Math.abs(stats.currentHolding) < 0.01 && type === "sell") {
-          // 清仓收益 = 卖出总金额 - 买入总成本
-          // 重新计算准确的收益
-          let totalBuyCost = 0;
-          let totalSellCost = 0;
-          records.forEach((r) => {
-            if (r.type === "buy") {
-              totalBuyCost += r.total;
-            } else {
-              totalSellCost += r.total;
+        const STORAGE_KEY = 'goldRecords';
+        
+        let records = [];
+        let profits = [];
+        
+        function init() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const data = JSON.parse(saved);
+                records = data.records || [];
+                profits = data.profits || [];
             }
-          });
-          const profit = totalSellCost - totalBuyCost;
-          profits.unshift({
-            id: Date.now(),
-            date,
-            profit,
-          });
+            
+            document.getElementById('date').valueAsDate = new Date();
+            renderRecords();
+            renderProfits();
+            updateSummary();
         }
-
-        document.getElementById("price").value = "";
-        document.getElementById("amount").value = "";
-
-        saveData();
-        renderRecords();
-        renderProfits();
-        updateSummary();
-      }
-
-      function deleteRecord(id) {
-        if (!confirm("确定删除这条记录？")) return;
-
-        records = records.filter((r) => r.id !== id);
-
-        profits = [];
-        let tempRecords = [...records].reverse();
-        let totalBuy = 0;
-        let totalSell = 0;
-        let totalBuyCost = 0;
-        let totalSellCost = 0;
-
-        tempRecords.forEach((r) => {
-          if (r.type === "buy") {
-            totalBuy += r.amount;
-            totalBuyCost += r.total;
-          } else {
-            totalSell += r.amount;
-            totalSellCost += r.total;
-
-            if (Math.abs(totalBuy - totalSell) < 0.01) {
-              const profit = totalSellCost - totalBuyCost;
-              profits.unshift({
-                id: Date.now() + Math.random(),
-                date: r.date,
-                profit,
-              });
-              totalBuy = 0;
-              totalSell = 0;
-              totalBuyCost = 0;
-              totalSellCost = 0;
+        
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ records, profits }));
+        }
+        
+        function calculateStats() {
+            let totalBuyAmount = 0;
+            let totalSellAmount = 0;
+            let totalBuyCost = 0;
+            let totalSellCost = 0;
+            
+            records.forEach(r => {
+                if (r.type === 'buy') {
+                    totalBuyAmount += r.amount;
+                    totalBuyCost += r.total;
+                } else {
+                    totalSellAmount += r.amount;
+                    totalSellCost += r.total;
+                }
+            });
+            
+            const currentHolding = totalBuyAmount - totalSellAmount;
+            const holdingCost = totalBuyCost - totalSellCost;
+            const avgPrice = currentHolding > 0.01 ? holdingCost / currentHolding : 0;
+            
+            return {
+                currentHolding,
+                holdingCost,
+                avgPrice,
+                totalBuyAmount,
+                totalSellAmount,
+                totalBuyCost,
+                totalSellCost
+            };
+        }
+        
+        function addRecord() {
+            const type = document.getElementById('tradeType').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const amount = parseFloat(document.getElementById('amount').value);
+            const date = document.getElementById('date').value;
+            
+            if (!price || !amount || !date) {
+                alert('请填写完整信息');
+                return;
             }
-          }
-        });
-
-        saveData();
-        renderRecords();
-        renderProfits();
-        updateSummary();
-      }
-
-      function exportData() {
-        const data = {
-          records,
-          profits,
-          exportDate: new Date().toISOString(),
-          version: "1.0",
-        };
-
-        const dataStr = JSON.stringify(data, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `积存金交易记录_${
-          new Date().toISOString().split("T")[0]
-        }.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-
-      function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          try {
-            const data = JSON.parse(e.target.result);
-
-            if (!data.records || !Array.isArray(data.records)) {
-              alert("文件格式错误");
-              return;
+            
+            const total = price * amount;
+            
+            if (type === 'sell') {
+                const stats = calculateStats();
+                if (amount > stats.currentHolding + 0.01) {
+                    alert('卖出数量不能超过当前持仓');
+                    return;
+                }
             }
-
-            if (!confirm("导入数据将覆盖当前所有记录，确定继续？")) {
-              return;
+            
+            records.unshift({
+                id: Date.now(),
+                date,
+                type,
+                price,
+                amount,
+                total
+            });
+            
+            const stats = calculateStats();
+            if (Math.abs(stats.currentHolding) < 0.01 && type === 'sell') {
+                // 清仓收益 = 卖出总收入 - 买入总成本
+                const profit = stats.totalSellCost - stats.totalBuyCost;
+                profits.unshift({
+                    id: Date.now(),
+                    date,
+                    profit
+                });
             }
-
-            records = data.records;
-            profits = data.profits || [];
-
+            
+            document.getElementById('price').value = '';
+            document.getElementById('amount').value = '';
+            
             saveData();
             renderRecords();
             renderProfits();
             updateSummary();
-
-            alert("导入成功！");
-          } catch (error) {
-            alert("文件解析失败，请检查文件格式");
-            console.error(error);
-          }
-        };
-
-        reader.readAsText(file);
-        event.target.value = "";
-      }
-
-      function renderRecords() {
-        const tbody = document.getElementById("recordsBody");
-
-        if (records.length === 0) {
-          tbody.innerHTML =
-            '<tr><td colspan="6" class="empty-state">暂无交易记录</td></tr>';
-          return;
         }
-
-        tbody.innerHTML = records
-          .map(
-            (r) => `
+        
+        function deleteRecord(id) {
+            if (!confirm('确定删除这条记录？')) return;
+            
+            records = records.filter(r => r.id !== id);
+            
+            profits = [];
+            let tempRecords = [...records].reverse();
+            let totalBuy = 0;
+            let totalSell = 0;
+            let totalBuyCost = 0;
+            let totalSellCost = 0;
+            
+            tempRecords.forEach(r => {
+                if (r.type === 'buy') {
+                    totalBuy += r.amount;
+                    totalBuyCost += r.total;
+                } else {
+                    totalSell += r.amount;
+                    totalSellCost += r.total;
+                    
+                    if (Math.abs(totalBuy - totalSell) < 0.01) {
+                        const profit = totalSellCost - totalBuyCost;
+                        profits.unshift({
+                            id: Date.now() + Math.random(),
+                            date: r.date,
+                            profit
+                        });
+                        totalBuy = 0;
+                        totalSell = 0;
+                        totalBuyCost = 0;
+                        totalSellCost = 0;
+                    }
+                }
+            });
+            
+            saveData();
+            renderRecords();
+            renderProfits();
+            updateSummary();
+        }
+        
+        function exportData() {
+            const data = {
+                records,
+                profits,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `积存金交易记录_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.records || !Array.isArray(data.records)) {
+                        alert('文件格式错误');
+                        return;
+                    }
+                    
+                    if (!confirm('导入数据将覆盖当前所有记录，确定继续？')) {
+                        return;
+                    }
+                    
+                    records = data.records;
+                    profits = data.profits || [];
+                    
+                    saveData();
+                    renderRecords();
+                    renderProfits();
+                    updateSummary();
+                    
+                    alert('导入成功！');
+                } catch (error) {
+                    alert('文件解析失败，请检查文件格式');
+                    console.error(error);
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+        
+        function renderRecords() {
+            const tbody = document.getElementById('recordsBody');
+            
+            if (records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">暂无交易记录</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = records.map(r => `
                 <tr>
                     <td>${r.date}</td>
-                    <td><span class="${r.type}">${
-              r.type === "buy" ? "买入" : "卖出"
-            }</span></td>
+                    <td><span class="${r.type}">${r.type === 'buy' ? '买入' : '卖出'}</span></td>
                     <td>¥${r.price.toFixed(2)}/g</td>
                     <td>${r.amount.toFixed(2)} g</td>
                     <td>¥${r.total.toFixed(2)}</td>
-                    <td><button class="delete-btn" onclick="deleteRecord(${
-                      r.id
-                    })">删除</button></td>
+                    <td><button class="delete-btn" onclick="deleteRecord(${r.id})">删除</button></td>
                 </tr>
-            `
-          )
-          .join("");
-      }
-
-      function renderProfits() {
-        const tbody = document.getElementById("profitsBody");
-
-        if (profits.length === 0) {
-          tbody.innerHTML =
-            '<tr><td colspan="2" class="empty-state">暂无清仓记录</td></tr>';
-        } else {
-          tbody.innerHTML = profits
-            .map(
-              (p) => `
+            `).join('');
+        }
+        
+        function renderProfits() {
+            const tbody = document.getElementById('profitsBody');
+            
+            if (profits.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" class="empty-state">暂无清仓记录</td></tr>';
+            } else {
+                tbody.innerHTML = profits.map(p => `
                     <tr>
                         <td>${p.date}</td>
-                        <td><span class="${p.profit >= 0 ? "sell" : "buy"}">${
-                p.profit >= 0 ? "+" : ""
-              }¥${p.profit.toFixed(2)}</span></td>
+                        <td><span class="${p.profit >= 0 ? 'sell' : 'buy'}">${p.profit >= 0 ? '+' : ''}¥${p.profit.toFixed(2)}</span></td>
                     </tr>
-                `
-            )
-            .join("");
+                `).join('');
+            }
+            
+            // 计算累计总收益
+            const totalProfit = profits.reduce((sum, p) => sum + p.profit, 0);
+            const profitEl = document.getElementById('totalProfitSum');
+            profitEl.textContent = `${totalProfit >= 0 ? '+' : ''}¥${totalProfit.toFixed(2)}`;
+            profitEl.className = 'value ' + (totalProfit >= 0 ? 'positive' : 'negative');
         }
-
-        // 计算累计总收益
-        const totalProfit = profits.reduce((sum, p) => sum + p.profit, 0);
-        const profitEl = document.getElementById("totalProfitSum");
-        profitEl.textContent = `${
-          totalProfit >= 0 ? "+" : ""
-        }¥${totalProfit.toFixed(2)}`;
-        profitEl.className =
-          "value " + (totalProfit >= 0 ? "positive" : "negative");
-      }
-
-      function updateSummary() {
-        const stats = calculateStats();
-
-        document.getElementById(
-          "currentHolding"
-        ).textContent = `${stats.currentHolding.toFixed(2)} g`;
-
-        // 清仓后成本显示为0
-        const displayCost = stats.currentHolding < 0.01 ? 0 : stats.holdingCost;
-        document.getElementById(
-          "totalCost"
-        ).textContent = `¥${displayCost.toFixed(2)}`;
-        document.getElementById(
-          "avgPrice"
-        ).textContent = `¥${stats.avgPrice.toFixed(2)}/g`;
-      }
-
-      init();
+        
+        function updateSummary() {
+            const stats = calculateStats();
+            
+            document.getElementById('currentHolding').textContent = `${stats.currentHolding.toFixed(2)} g`;
+            
+            // 清仓后成本显示为0
+            const displayCost = stats.currentHolding < 0.01 ? 0 : stats.holdingCost;
+            document.getElementById('totalCost').textContent = `¥${displayCost.toFixed(2)}`;
+            document.getElementById('avgPrice').textContent = `¥${stats.avgPrice.toFixed(2)}/g`;
+        }
+        
+        init();
     </script>
-  </body>
+</body>
 </html>
