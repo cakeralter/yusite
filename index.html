@@ -190,6 +190,27 @@
             font-size: 20px;
         }
         
+        .profit-summary {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .profit-summary .label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .profit-summary .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -348,6 +369,10 @@
 
         <div class="profits-section">
             <h2>清仓收益记录</h2>
+            <div class="profit-summary">
+                <span class="label">累计清仓收益总计</span>
+                <span class="value" id="totalProfitSum">¥0.00</span>
+            </div>
             <table id="profitsTable">
                 <thead>
                     <tr>
@@ -406,7 +431,7 @@
             
             const currentHolding = totalBuyAmount - totalSellAmount;
             const holdingCost = totalBuyCost - totalSellCost;
-            const avgPrice = currentHolding > 0 ? holdingCost / currentHolding : 0;
+            const avgPrice = currentHolding > 0.01 ? holdingCost / currentHolding : 0;
             
             return {
                 currentHolding,
@@ -449,7 +474,8 @@
             
             const stats = calculateStats();
             if (Math.abs(stats.currentHolding) < 0.01 && type === 'sell') {
-                const profit = stats.holdingCost;
+                // 清仓收益 = 卖出总金额 - 买入总成本
+                const profit = -stats.holdingCost;
                 profits.unshift({
                     id: Date.now(),
                     date,
@@ -590,22 +616,30 @@
             
             if (profits.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="2" class="empty-state">暂无清仓记录</td></tr>';
-                return;
+            } else {
+                tbody.innerHTML = profits.map(p => `
+                    <tr>
+                        <td>${p.date}</td>
+                        <td><span class="${p.profit >= 0 ? 'sell' : 'buy'}">${p.profit >= 0 ? '+' : ''}¥${p.profit.toFixed(2)}</span></td>
+                    </tr>
+                `).join('');
             }
             
-            tbody.innerHTML = profits.map(p => `
-                <tr>
-                    <td>${p.date}</td>
-                    <td><span class="${p.profit >= 0 ? 'sell' : 'buy'}">${p.profit >= 0 ? '+' : ''}¥${p.profit.toFixed(2)}</span></td>
-                </tr>
-            `).join('');
+            // 计算累计总收益
+            const totalProfit = profits.reduce((sum, p) => sum + p.profit, 0);
+            const profitEl = document.getElementById('totalProfitSum');
+            profitEl.textContent = `${totalProfit >= 0 ? '+' : ''}¥${totalProfit.toFixed(2)}`;
+            profitEl.className = 'value ' + (totalProfit >= 0 ? 'positive' : 'negative');
         }
         
         function updateSummary() {
             const stats = calculateStats();
             
             document.getElementById('currentHolding').textContent = `${stats.currentHolding.toFixed(2)} g`;
-            document.getElementById('totalCost').textContent = `¥${stats.holdingCost.toFixed(2)}`;
+            
+            // 清仓后成本显示为0
+            const displayCost = stats.currentHolding < 0.01 ? 0 : stats.holdingCost;
+            document.getElementById('totalCost').textContent = `¥${displayCost.toFixed(2)}`;
             document.getElementById('avgPrice').textContent = `¥${stats.avgPrice.toFixed(2)}/g`;
         }
         
